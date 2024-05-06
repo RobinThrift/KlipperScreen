@@ -10,6 +10,7 @@ from datetime import datetime
 from math import log
 from ks_includes.screen_panel import ScreenPanel
 
+battery_cap_file = "/sys/class/power_supply/BAT0/capacity"
 
 class BasePanel(ScreenPanel):
     def __init__(self, screen, title):
@@ -18,6 +19,7 @@ class BasePanel(ScreenPanel):
         self.time_min = -1
         self.time_format = self._config.get_main_config().getboolean("24htime", True)
         self.time_update = None
+        self.battery_update = None
         self.titlebar_items = []
         self.titlebar_name_type = None
         self.current_extruder = None
@@ -84,9 +86,11 @@ class BasePanel(ScreenPanel):
 
         self.titlelbl = Gtk.Label(hexpand=True, halign=Gtk.Align.CENTER, ellipsize=Pango.EllipsizeMode.END)
 
+        self.control['battery'] = Gtk.Label(label="100%")
         self.control['time'] = Gtk.Label(label="00:00 AM")
         self.control['time_box'] = Gtk.Box(halign=Gtk.Align.END)
         self.control['time_box'].pack_end(self.control['time'], True, True, 10)
+        self.control['time_box'].pack_end(self.control['battery'], True, True, 10)
 
         self.titlebar = Gtk.Box(spacing=5, valign=Gtk.Align.CENTER)
         self.titlebar.get_style_context().add_class("title_bar")
@@ -184,6 +188,9 @@ class BasePanel(ScreenPanel):
     def activate(self):
         if self.time_update is None:
             self.time_update = GLib.timeout_add_seconds(1, self.update_time)
+
+        if self.battery_update is None:
+            self.battery_update = GLib.timeout_add_seconds(10, self.update_battery)
 
     def add_content(self, panel):
         printing = self._printer and self._printer.state in {"printing", "paused"}
@@ -324,6 +331,12 @@ class BasePanel(ScreenPanel):
                 self.control['time'].set_text(f'{now:%I:%M %p}')
             self.time_min = now.minute
             self.time_format = confopt
+        return True
+
+    def update_battery(self):
+        with open(battery_cap_file) as cap:
+            percentage = cap.read().splitlines()[0]
+            self.control['battery'].set_text(f'{percentage}%')
         return True
 
     def set_ks_printer_cfg(self, printer):
