@@ -9,6 +9,7 @@ from jinja2 import Environment
 from datetime import datetime
 from math import log
 from ks_includes.screen_panel import ScreenPanel
+import os.path
 
 battery_cap_file = "/sys/class/power_supply/BAT0/capacity"
 
@@ -20,6 +21,7 @@ class BasePanel(ScreenPanel):
         self.time_format = self._config.get_main_config().getboolean("24htime", True)
         self.time_update = None
         self.battery_update = None
+        self.battery_file = None
         self.titlebar_items = []
         self.titlebar_name_type = None
         self.current_extruder = None
@@ -197,7 +199,15 @@ class BasePanel(ScreenPanel):
             self.time_update = GLib.timeout_add_seconds(1, self.update_time)
 
         if self.battery_update is None:
-            self.battery_update = GLib.timeout_add_seconds(10, self.update_battery)
+            if os.path.isfile(battery_cap_file):
+                self.battery_file = open(battery_cap_file)
+
+            if self.battery_file is not None:
+                self.battery_update = GLib.timeout_add_seconds(10, self.update_battery)
+
+    def deactivate(self):
+        if self.battery_file is not None:
+            self.battery_file.close()
 
     def add_content(self, panel):
         printing = self._printer and self._printer.state in {"printing", "paused"}
@@ -346,9 +356,9 @@ class BasePanel(ScreenPanel):
         return True
 
     def update_battery(self):
-        with open(battery_cap_file) as cap:
-            percentage = cap.read().splitlines()[0]
-            self.control['battery'].set_text(f'{percentage}%')
+        self.battery_file.seek(0,0)
+        percentage = self.battery_file.read().rstrip()
+        self.control['battery'].set_text(f'{percentage}%')
         return True
 
     def set_ks_printer_cfg(self, printer):
