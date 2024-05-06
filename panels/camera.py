@@ -15,7 +15,7 @@ class Panel(ScreenPanel):
         self.mpv = None
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         for i, cam in enumerate(self._printer.cameras):
-            if not cam["enabled"]:
+            if not cam.get("enabled", True):
                 continue
             logging.info(cam)
             cam[cam["name"]] = self._gtk.Button(
@@ -37,7 +37,7 @@ class Panel(ScreenPanel):
         # if only 1 cam start playing fullscreen
         if len(self._printer.cameras) == 1:
             cam = next(iter(self._printer.cameras))
-            if cam['enabled']:
+            if cam.get("enabled", True):
                 self.play(None, cam)
 
     def deactivate(self):
