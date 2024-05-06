@@ -88,9 +88,11 @@ class BasePanel(ScreenPanel):
 
         self.titlelbl = Gtk.Label(hexpand=True, halign=Gtk.Align.CENTER, ellipsize=Pango.EllipsizeMode.END)
 
+        self.control['battery'] = Gtk.Label(label="100%")
         self.control['time'] = Gtk.Label(label="00:00 AM")
         self.control['time_box'] = Gtk.Box(halign=Gtk.Align.END)
         self.control['time_box'].pack_end(self.control['time'], True, True, 10)
+        self.control['time_box'].pack_end(self.control['battery'], True, True, 10)
 
         self.battery_icons = self.load_battery_icons()
         self.labels['battery'] = Gtk.Label()
@@ -232,6 +234,9 @@ class BasePanel(ScreenPanel):
             self.time_update = GLib.timeout_add_seconds(1, self.update_time)
         if self.battery_update is None:
             self.battery_update = GLib.timeout_add_seconds(60, self.battery_percentage)
+
+        if self.battery_update is None:
+            self.battery_update = GLib.timeout_add_seconds(10, self.update_battery)
 
     def add_content(self, panel):
         printing = self._printer and self._printer.state in {"printing", "paused"}
