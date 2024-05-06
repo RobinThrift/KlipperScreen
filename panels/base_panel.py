@@ -8,6 +8,7 @@ from jinja2 import Environment
 from datetime import datetime
 from math import log
 from ks_includes.screen_panel import ScreenPanel
+import os.path
 
 try:
     import psutil
@@ -25,6 +26,7 @@ class BasePanel(ScreenPanel):
         self.time_format = self._config.get_main_config().getboolean("24htime", True)
         self.time_update = None
         self.battery_update = None
+        self.battery_file = None
         self.titlebar_items = []
         self.titlebar_name_type = None
         self.current_extruder = None
@@ -236,7 +238,15 @@ class BasePanel(ScreenPanel):
             self.battery_update = GLib.timeout_add_seconds(60, self.battery_percentage)
 
         if self.battery_update is None:
-            self.battery_update = GLib.timeout_add_seconds(10, self.update_battery)
+            if os.path.isfile(battery_cap_file):
+                self.battery_file = open(battery_cap_file)
+
+            if self.battery_file is not None:
+                self.battery_update = GLib.timeout_add_seconds(10, self.update_battery)
+
+    def deactivate(self):
+        if self.battery_file is not None:
+            self.battery_file.close()
 
     def add_content(self, panel):
         printing = self._printer and self._printer.state in {"printing", "paused"}
